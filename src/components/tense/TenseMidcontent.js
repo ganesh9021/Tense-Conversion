@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from "react";
 import TenseDropdown from "../Data/tenses.json";
 import { Inflectors } from "en-inflectors";
+import { DragDropContainer, DropTarget } from "react-drag-drop-container";
 
 import tensejson from "../../supportingfiles/DBJSON/tense.json";
 import sentenceTemplate from "../../supportingfiles/DBJSON/sentence_template.json";
-import "../../resources/Midcontent.css";
 import verbjson from "../../supportingfiles/DBJSON/verb.json";
 import nounverbjson from "../../supportingfiles/DBJSON/noun_verb.json";
 import nounjson from "../../supportingfiles/DBJSON/noun.json";
 import passActFeedbackProps from "../../supportingfiles/languageProperties/passiveActive/en-IN-feedbackproperties.json";
 import actpassFeedbackProps from "../../supportingfiles/languageProperties/activePassive/en-IN-feedbackproperties.json";
+import feedback from "./feedback.json";
+import { Button } from "@mui/material";
 
 const TenseMidcontent = () => {
   const [firstDropDown, setFirstDropDown] = useState("Simple Present Tense");
   const [secondDropDown, setSecondDropDown] = useState("Simple Past Tense");
   const [actvityId, setActivityId] = useState(3);
   const [actList, setActList] = useState([]);
+  const [actSentList, setActSentList] = useState([]);
+  const [droppableIndex, setDroppableIndex] = useState([]);
 
   var tempActivityPojo = {
     sentence_tense: "Simple Present Tense",
@@ -150,7 +154,18 @@ const TenseMidcontent = () => {
     ansSent: [], // Empty array for ansSent
     AnswerSentence: "",
     QuestionSentence: "",
-    // activityPojo: {},
+    helping_verb_array: [],
+    main_verb_array: [],
+  });
+
+  const [feedbackAnswer, setFeedbackAnswer] = useState({
+    helping_verb_Diagnosis: "",
+    main_verb_Diagnosis: "",
+
+    helping_verb_Remedy: "",
+    main_verb_Remedy: "",
+
+    answerFeedback: "",
   });
 
   useEffect(() => {
@@ -180,6 +195,10 @@ const TenseMidcontent = () => {
         updateTenseConversionPojo(firstDropDown);
         generateAnswerSentence();
         process();
+
+        let optionArray = fetchOptions();
+        // console.log(optionArray);
+        setActList(optionArray);
       });
     }
   }, [firstDropDown, secondDropDown]);
@@ -405,14 +424,14 @@ const TenseMidcontent = () => {
       case "Future Perfect Tense":
         listTense = perfectfuture();
         break;
-
       case "Future Perfect Continuous Tense":
         listTense = perfectfuturecontinuous();
         break;
-      case "default":
+      default: // This is the correct syntax for the default case
         console.log("Tense cannot be identified.");
         break;
     }
+
     return listTense;
   };
 
@@ -1383,7 +1402,7 @@ const TenseMidcontent = () => {
     TenseConversionPojo.AnswerSentence = tempActivityPojo.active_voice;
 
     var tempArray = new Array(TenseConversionPojo.ansSent.length);
-    console.log(TenseConversionPojo.ansSent);
+    // console.log(TenseConversionPojo.ansSent);
 
     let posMainVerb = 999;
     for (let i = 0; i < tempArray.length; i++) {
@@ -1397,7 +1416,7 @@ const TenseMidcontent = () => {
         tempActivityPojo.object_article.toLowerCase() ===
           TenseConversionPojo.ansSent[i].toLowerCase()
       ) {
-        console.log(TenseConversionPojo.ansSent[i]);
+        // console.log(TenseConversionPojo.ansSent[i]);
         if (!TenseConversionPojo.ansSent[i].toLowerCase() == "") {
           tempArray[i] = TenseConversionPojo.ansSent[i];
         }
@@ -1411,11 +1430,17 @@ const TenseMidcontent = () => {
         }
       }
     }
-    console.log(TenseConversionPojo.tenseConvAns);
-    console.log(tempActivityPojo.subject_name);
-    console.log(tempActivityPojo.object_name);
-    console.log(tempArray);
-    console.log(posMainVerb);
+
+    let indexes = tempArray.reduce((acc, item, index) => {
+      if (item === "--------") {
+        acc.push(index);
+      }
+      return acc;
+    }, []);
+
+    setDroppableIndex((prev) => [...prev, ...indexes]);
+    setActSentList(tempArray);
+    // console.log(indexes);
   };
 
   const process = () => {
@@ -1473,6 +1498,327 @@ const TenseMidcontent = () => {
     }
   };
 
+  const fetchOptions = () => {
+    const baseFormVerb = tempActivityPojo.verb;
+    const mainVerbArray = new Array(10);
+    const helpingVerbArray = [
+      "am",
+      "is",
+      "are",
+      "have",
+      "has",
+      "had",
+      "be",
+      "being",
+      "been",
+      "was",
+      "were",
+      "will",
+      "going to",
+    ];
+    const optionsArray = new Array(30);
+    let indexMainVerbArray = 3;
+    let indexOptionArray = 0;
+
+    mainVerbArray[0] = baseFormVerb;
+    let str = baseFormVerb.substring(
+      baseFormVerb.length - 1,
+      baseFormVerb.length
+    );
+    if (str.toLowerCase() === "s" || str.toLowerCase() === "h") {
+      mainVerbArray[1] = baseFormVerb.concat("es");
+    } else {
+      mainVerbArray[1] = baseFormVerb.concat("s");
+    }
+    mainVerbArray[2] = new Inflectors(baseFormVerb).conjugate("VBG"); //var ingrule = ingrules(verb);
+
+    function getRelevantObject(verb) {
+      return (
+        verbjson[verb] || `No matching object found for the verb '${verb}'.`
+      );
+    }
+
+    // console.log(getRelevantObject(baseFormVerb));
+    const { verb_past_tense, verb_past_participle } =
+      getRelevantObject(baseFormVerb);
+
+    mainVerbArray[indexMainVerbArray] = verb_past_participle;
+    indexMainVerbArray++;
+
+    if (verb_past_tense !== verb_past_participle) {
+      mainVerbArray[indexMainVerbArray] = verb_past_tense;
+    }
+
+    for (let i = 0; i < mainVerbArray.length; i++) {
+      if (mainVerbArray[i] != null) {
+        optionsArray[indexOptionArray] = mainVerbArray[i].concat("_mv");
+        indexOptionArray++;
+      }
+    }
+
+    for (let i = 0; i < helpingVerbArray.length; i++) {
+      if (helpingVerbArray[i] != null) {
+        optionsArray[indexOptionArray] = helpingVerbArray[i].concat("_hv");
+        indexOptionArray++;
+      }
+    }
+
+    setTenseConversionPojo((prev) => ({
+      ...prev,
+      helping_verb_array: helpingVerbArray,
+      main_verb_array: mainVerbArray,
+    }));
+
+    const filteredData = optionsArray.filter((value) => value != null);
+
+    function shuffledArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]; // Swap elements
+      }
+      return array;
+    }
+
+    return shuffledArray(filteredData);
+  };
+
+  const handleDrop = (e, index) => {
+    const droppedItem = e.dragData; // The item being dropped
+    const updatedList = actSentList.map((item, idx) =>
+      idx === index ? droppedItem.slice(0, -3) : item
+    );
+    setActSentList(updatedList);
+  };
+
+  const CheckAnswer = () => {
+    let correctWordCount = 0;
+    for (let i = 0; i < TenseConversionPojo.ansSent.length; i++) {
+      if (
+        TenseConversionPojo.ansSent[i].toLowerCase() ===
+        actSentList[i].toLowerCase()
+      ) {
+        correctWordCount++;
+      }
+      if (correctWordCount == TenseConversionPojo.ansSent.length) {
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          answerFeedback: feedback.correctAnswer,
+        }));
+      } else {
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          answerFeedback: feedback.wrongAnswer,
+        }));
+      }
+    }
+    getDetailedFeedbackForMainVerb();
+    getDetailedFeedbackForHelpingVerb();
+    console.log(feedbackAnswer);
+    
+  };
+
+  const getDetailedFeedbackForMainVerb = () => {
+    const correctAns = TenseConversionPojo.ansSent;
+    const usersAns = actSentList;
+
+    for (let i = 0; i < correctAns.length; i++) {
+      if (isMainVerb(correctAns, i) && isBoxEmpty(usersAns, i)) {
+        console.log("inside if");
+
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          main_verb_Diagnosis: feedback.Diagnosis.missingMV_Diagnosis,
+          main_verb_Remedy: feedback.Remedy.missingMV_Remedy,
+        }));
+      } else if (isMainVerb(correctAns, i)) {
+        let shouldDisplay = true;
+        for (
+          let j = 0;
+          j < TenseConversionPojo.helping_verb_array.length;
+          j++
+        ) {
+          if (isHelpingVerbFromOption(usersAns, i, j)) {
+            let val = feedback.Remedy.misplacedMV_Remedy;
+            val = val.replace("(XYZ)", tempActivityPojo.verb);
+            setFeedbackAnswer((prev) => ({
+              ...prev,
+              main_verb_Diagnosis: feedback.Diagnosis.misplacedMV_Diagnosis,
+              main_verb_Remedy: val,
+            }));
+            shouldDisplay = false;
+            break;
+          }
+        }
+        if (!isMainVerbCorrect(correctAns, usersAns, i) && shouldDisplay) {
+          let val1 = feedback.Diagnosis.wrongMV_Diagnosis;
+          let val2 = feedback.Remedy.wrongMV_Remedy;
+
+          val1 = val1.replace("(XYZ)", tempActivityPojo.verb);
+          val2 = val2.replace("(XYZ)", tempActivityPojo.verb);
+
+          setFeedbackAnswer((prev) => ({
+            ...prev,
+            main_verb_Diagnosis: val1,
+            main_verb_Remedy: val2,
+          }));
+          break;
+        }
+      }
+      if (
+        isMainVerbCorrect(usersAns, correctAns, i) &&
+        isMainVerb(correctAns, i)
+      ) {
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          main_verb_Diagnosis: feedback.Diagnosis.correctMV_Diagnosis,
+          main_verb_Remedy: feedback.Remedy.correctMV_Remedy,
+        }));
+      }
+    }
+  };
+
+  const getDetailedFeedbackForHelpingVerb = () => {
+    const correctAns = TenseConversionPojo.ansSent;
+    const usersAns = actSentList;
+    let count = 0;
+    for (let i = 0; i < correctAns.length; i++) {
+      for (let j = 0; j < TenseConversionPojo.helping_verb_array.length; j++) {
+        if (
+          isHelpingVerbFromOption(correctAns, i, j) &&
+          isBoxEmpty(usersAns, i)
+        ) {
+          count++;
+          break;
+        }
+      }
+    }
+    if (count === TenseConversionPojo.helping_verb_array.length) {
+      setFeedbackAnswer((prev) => ({
+        ...prev,
+        helping_verb_Diagnosis: feedback.Diagnosis.missingHVerb_Diagnosis,
+        helping_verb_Remedy: feedback.Remedy.missingHVerb_Remedy,
+      }));
+    } else if (count >= 1) {
+      setFeedbackAnswer((prev) => ({
+        ...prev,
+        helping_verb_Diagnosis: feedback.Diagnosis.missingHVerbs_Diagnosis,
+        helping_verb_Remedy: feedback.Remedy.missingHVerbs_Remedy,
+      }));
+    } else {
+      let count1 = 0;
+      let count2 = 0;
+      for (let i = 0; i < correctAns.length; i++) {
+        for (
+          let j = 0;
+          j < TenseConversionPojo.helping_verb_array.length;
+          j++
+        ) {
+          if (
+            isHelpingVerbFromOption(correctAns, i, j) &&
+            isMainVerbCorrect(correctAns, usersAns, i)
+          ) {
+            count1++;
+          }
+        }
+        for (
+          let k = 0;
+          k < TenseConversionPojo.ansSent_helping_verb_array.length;
+          k++
+        ) {
+          if (isHelpingVerbFromCorrectAnswer(usersAns, i, k)) {
+            count2++;
+            break;
+          }
+        }
+      }
+      if (count1 === TenseConversionPojo.ansSent_helping_verb_array.length) {
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          helping_verb_Diagnosis: feedback.Diagnosis.correctHV_Diagnosis,
+          helping_verb_Remedy: feedback.Remedy.correctHV_Remedy,
+        }));
+      } else if (
+        count2 === TenseConversionPojo.ansSent_helping_verb_array.length
+      ) {
+        setFeedbackAnswer((prev) => ({
+          ...prev,
+          helping_verb_Diagnosis:
+            feedback.Diagnosis.incorrectPositionHV_Diagnosis,
+          helping_verb_Remedy: feedback.Remedy.incorrectPositionHV_Remedy,
+        }));
+      } else {
+        if (count1 > 1) {
+          setFeedbackAnswer((prev) => ({
+            ...prev,
+            helping_verb_Diagnosis:
+              feedback.Diagnosis.partialCorrectHV_Diagnosis,
+            helping_verb_Remedy: feedback.Remedy.partialCorrectHV_Remedy,
+          }));
+        } else {
+          setFeedbackAnswer((prev) => ({
+            ...prev,
+            helping_verb_Diagnosis: feedback.Diagnosis.wrongHV_Diagnosis,
+            helping_verb_Remedy: feedback.Remedy.wrongHV_Remedy,
+          }));
+        }
+      }
+    }
+
+    for (let i = 0; i < correctAns.length; i++) {
+      for (
+        let k = 0;
+        k < TenseConversionPojo.ansSent_helping_verb_array.length;
+        k++
+      ) {
+        if (
+          correctAns[i] == TenseConversionPojo.ansSent_helping_verb_array[k]
+        ) {
+          for (let j = 0; j < TenseConversionPojo.main_verb_array.length; j++) {
+            if (isMainVerbPlaced(usersAns, i, j)) {
+              setFeedbackAnswer((prev) => ({
+                ...prev,
+                helping_verb_Diagnosis:
+                  feedback.Diagnosis.misplacedHV_Diagnosis,
+                helping_verb_Remedy: feedback.Remedy.misplacedHV_Remedy,
+              }));
+              break;
+            }
+          }
+        }
+      }
+    }
+  };
+
+  const isMainVerb = (correctAns, i) => {
+    return correctAns[i] === TenseConversionPojo.ansSent_main_verb;
+  };
+
+  const isMainVerbCorrect = (userAns, correctAns, i) => {
+    return correctAns[i] === userAns[i];
+  };
+
+  const isBoxEmpty = (userAns, i) => {
+    return userAns[i] === "--------";
+  };
+
+  const isHelpingVerbFromOption = (correctAns, i, j) => {
+    // console.log(correctAns);
+    // console.log(i);
+    // console.log(TenseConversionPojo.helping_verb_array[j]);
+
+    return (
+      correctAns[i].toLowerCase() == TenseConversionPojo.helping_verb_array[j]
+    );
+  };
+
+  const isMainVerbPlaced = (userAns, i, j) => {
+    return userAns[i].toLowerCase() === TenseConversionPojo.main_verb_array[j];
+  };
+
+  const isHelpingVerbFromCorrectAnswer = (userAns, i, k) => {
+    return userAns[i] === TenseConversionPojo.ansSent_helping_verb_array[k];
+  };
+
   return (
     <div className="container-fluid p-3">
       <div className="row">Tense Conversion</div>
@@ -1519,7 +1865,40 @@ const TenseMidcontent = () => {
         <div id="sent"></div>
       </div>
       <div className="row">Sentence in {secondDropDown}</div>
-      <div className="row">sentence with blank spaces.</div>
+
+      <span>
+        {actSentList.map((item, index) =>
+          droppableIndex.includes(index) ? (
+            <DropTarget
+              key={index}
+              targetKey="item"
+              onHit={(e) => handleDrop(e, index)}
+            >
+              <span className="btn btn-secondary m-1">{item}</span>
+            </DropTarget>
+          ) : (
+            <span key={index} className="btn btn-secondary m-1">
+              {item}
+            </span>
+          )
+        )}
+      </span>
+
+      <div className="p-3 ps-0">
+        {actList.map((item, index) => (
+          <DragDropContainer key={index} targetKey="item" dragData={item}>
+            <span className="btn btn-secondary m-1">{item.slice(0, -3)}</span>
+          </DragDropContainer>
+        ))}
+      </div>
+
+      <div className="row">
+        <div>
+          <Button variant="contained" color="primary" onClick={CheckAnswer}>
+            Submit
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -36,3 +36,11 @@
     transform: rotate(360deg);
   }
 }
+
+
+.no-wrap-container {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto; /* Optional: Adds horizontal scrolling if items overflow */
+  white-space: nowrap; /* Prevents wrapping for inline content */
+}
