@@ -37,10 +37,19 @@
   }
 }
 
-
 .no-wrap-container {
   display: flex;
   flex-wrap: nowrap;
   overflow-x: auto; /* Optional: Adds horizontal scrolling if items overflow */
   white-space: nowrap; /* Prevents wrapping for inline content */
+}
+
+tr {
+  border: 1px solid black;
+}
+
+.td_col {
+  padding: 10px;
+  border: 1px solid black;
+  text-align: center;
 }

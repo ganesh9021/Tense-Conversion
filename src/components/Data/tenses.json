@@ -13,7 +13,7 @@
   },
   {
     "id": "4",
-    "tense": "Present Perfect Continuous"
+    "tense": "Present Perfect Continuous Tense"
   },
   {
     "id": "5",
@@ -29,7 +29,7 @@
   },
   {
     "id": "8",
-    "tense": "Past Perfect Continuous"
+    "tense": "Past Perfect Continuous Tense"
   },
   {
     "id": "9",
@@ -37,7 +37,7 @@
   },
   {
     "id": "10",
-    "tense": "Future Continuous"
+    "tense": "Future Continuous Tense"
   },
   {
     "id": "11",
@@ -45,6 +45,6 @@
   },
   {
     "id": "12",
-    "tense": "Future Perfect Continuous"
+    "tense": "Future Perfect Continuous Tense"
   }
 ]

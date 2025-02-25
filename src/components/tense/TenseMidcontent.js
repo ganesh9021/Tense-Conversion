@@ -1,29 +1,35 @@
 import React, { useEffect, useState } from "react";
-import TenseDropdown from "../Data/tenses.json";
 import { Inflectors } from "en-inflectors";
 import { DragDropContainer, DropTarget } from "react-drag-drop-container";
 
-import tensejson from "../../supportingfiles/DBJSON/tense.json";
+import TenseDropdown from "../Data/tenses.json";
 import sentenceTemplate from "../../supportingfiles/DBJSON/sentence_template.json";
 import verbjson from "../../supportingfiles/DBJSON/verb.json";
 import nounverbjson from "../../supportingfiles/DBJSON/noun_verb.json";
 import nounjson from "../../supportingfiles/DBJSON/noun.json";
-import passActFeedbackProps from "../../supportingfiles/languageProperties/passiveActive/en-IN-feedbackproperties.json";
-import actpassFeedbackProps from "../../supportingfiles/languageProperties/activePassive/en-IN-feedbackproperties.json";
 import feedback from "./feedback.json";
 import { Button } from "@mui/material";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import { useTranslation } from "react-i18next";
 
 const TenseMidcontent = () => {
+  const { t } = useTranslation();
   const [firstDropDown, setFirstDropDown] = useState("Simple Present Tense");
   const [secondDropDown, setSecondDropDown] = useState("Simple Past Tense");
   const [actvityId, setActivityId] = useState(3);
   const [actList, setActList] = useState([]);
   const [actSentList, setActSentList] = useState([]);
   const [droppableIndex, setDroppableIndex] = useState([]);
+  const [openFeedback, setOpenFeedback] = useState(false);
+  let [showAnswerCounter, setShowAnswerCounter] = useState(0);
+  let [IsDisableNext, setIsDisableNext] = useState(true);
 
   var tempActivityPojo = {
     sentence_tense: "Simple Present Tense",
-    //sentence_tense : "modalverb",
     active_voice: "",
     passive_voice: "",
     subject_name: "",
@@ -60,6 +66,7 @@ const TenseMidcontent = () => {
     jumbled_passive_sentence: [],
     active_sentence: [],
     passive_sentence: [],
+    AnswerSentence: "",
   };
 
   var tempPojoSent = {
@@ -75,35 +82,8 @@ const TenseMidcontent = () => {
     objectArticleType: "",
   };
 
-  var tempTenseConversionPojo = {
-    tenseConvQuest: "",
-    questSent_helping_verb: "",
-    questSent_main_verb: "",
-    questSent: [], // Empty array for questSent
-    tenseConvAns: "",
-    ansSent_helping_verb: "",
-    ansSent_main_verb: "",
-    ansSent_helping_verb_array: [], // Empty array for ansSent_helping_verb_array
-    ansSent: [], // Empty array for ansSent
-    AnswerSentence: "",
-    QuestionSentence: "",
-  };
-
-  const [TemplatePojo, setTemplatePojo] = useState({
-    sentenceID: "",
-    sentenceType: "",
-    subjectType: "",
-    verbCategory: "",
-    infinitiveType: "",
-    infinitiveTense: "",
-    subverbType: "",
-    objectType: "",
-    subjectArticleType: "",
-    objectArticleType: "",
-  });
-
-  const [ActivityPojo, setActivityPojo] = useState({
-    sentence_tense: "Simple Present Tense", //tense=null
+  const [dummyTempActivityPojo, setDummyTempActivityPojo] = useState({
+    sentence_tense: "Simple Present Tense",
     active_voice: "",
     passive_voice: "",
     subject_name: "",
@@ -140,7 +120,21 @@ const TenseMidcontent = () => {
     jumbled_passive_sentence: [],
     active_sentence: [],
     passive_sentence: [],
+    AnswerSentence: "",
   });
+
+  // const [dummyTempPojoSent, setDummyTempPojoSent] = useState({
+  //   sentenceID: "",
+  //   sentenceType: "",
+  //   subjectType: "",
+  //   verbCategory: "",
+  //   infinitiveType: "",
+  //   infinitiveTense: "",
+  //   subverbType: "",
+  //   objectType: "",
+  //   subjectArticleType: "",
+  //   objectArticleType: "",
+  // });
 
   const [TenseConversionPojo, setTenseConversionPojo] = useState({
     tenseConvQuest: "",
@@ -169,46 +163,82 @@ const TenseMidcontent = () => {
   });
 
   useEffect(() => {
-    var sentenceTempPath = "";
-    sentenceTempPath = getSentenceTempPath();
+    const sentenceTempPath = getSentenceTempPath();
 
-    if (undefined !== sentenceTempPath || "" === sentenceTempPath) {
-      const result = simpleSentenceParser(sentenceTempPath).then((r) => {
-        var allNounVrbObj = getDetailedNounVerb(
-          actvityId,
-          tempPojoSent,
-          tempActivityPojo
-        );
-        setObjectDetails(allNounVrbObj.Noun_verb_nounid, tempActivityPojo);
-        setSubjectDetails();
-        var listActPass = getVerbInflections(firstDropDown);
+    // Ensure sentenceTempPath is valid before proceeding
+    if (sentenceTempPath) {
+      const fetchData = async () => {
+        try {
+          // Wait for sentence parsing to finish
+          await simpleSentenceParser(sentenceTempPath);
+
+          // Get the noun-verb details after parsing
+          const allNounVrbObj = getDetailedNounVerb(
+            actvityId,
+            tempPojoSent,
+            tempActivityPojo
+          );
+
+          // Set object details and subject details
+          setObjectDetails(allNounVrbObj.Noun_verb_nounid, tempActivityPojo);
+          setSubjectDetails();
+
+          // Get verb inflections from the first dropdown
+          const listActPass = getVerbInflections(firstDropDown);
+
+          // Run the article selector and generate a sentence
+          articleSelector();
+          const firstDDSentence = generateSentence(4, listActPass);
+
+          // Process the generated sentence
+          process(firstDDSentence);
+          generateAnswerSentence();
+
+          // Set the activity options
+          setActList(fetchOptions());
+
+          // Copy the data to the dummy objects (this will update state)
+          setDummyTempActivityPojo({ ...tempActivityPojo });
+          // setDummyTempPojoSent({ ...tempPojoSent });
+        } catch (error) {
+          console.error("Error during sentence parsing or processing:", error);
+        }
+      };
+
+      // Call the async function to handle the data fetching and updates
+      fetchData();
+    }
+  }, [firstDropDown]); // Dependency array - this effect will run when `firstDropDown` changes
+
+  useEffect(() => {
+    const sentenceTempPath = getSentenceTempPath();
+
+    if (sentenceTempPath) {
+      simpleSentenceParser(sentenceTempPath).then(() => {
+        // const listActPass = getVerbInflections(secondDropDown);
         // console.log(listActPass);
 
-        articleSelector();
-        // generateSentence(actvityId, listActPass);
-        // console.log(listActPass);
-
-        generateSentence(4, listActPass);
-        jumbled_sentence(firstDropDown);
-        // var passDataObj = populateJSON(actvityId);
-        // process(passDataObj, actvityId);
-        updateTenseConversionPojo(firstDropDown);
+        // const secondDDSent = generateSentence(4, listActPass);
         generateAnswerSentence();
-        process();
-
-        let optionArray = fetchOptions();
-        // console.log(optionArray);
-        setActList(optionArray);
+        // console.log(secondDDSent);
       });
     }
-  }, [firstDropDown, secondDropDown]);
+  }, [secondDropDown]);
+
+  useEffect(() => {
+    if (feedbackAnswer.answerFeedback === "Wrong answer.") {
+      setShowAnswerCounter(showAnswerCounter + 1);
+    } else if (feedbackAnswer.answerFeedback === "Correct answer.") {
+      setIsDisableNext(false);
+    }
+  }, [feedbackAnswer]);
 
   const getSentenceTempPath = () => {
     var sentenseTempPath = "";
     var sentenceTempId = 1;
 
     for (var noofsent = 0; noofsent < sentenceTemplate.length; noofsent++) {
-      if (sentenceTemplate[noofsent].activity_id == sentenceTempId) {
+      if (sentenceTemplate[noofsent].activity_id === sentenceTempId) {
         sentenseTempPath = sentenceTemplate[noofsent].activity_name;
         break;
       }
@@ -264,20 +294,6 @@ const TenseMidcontent = () => {
           .querySelectorAll("object")[0]
           .querySelectorAll("article")[0]
           .getAttribute("type");
-
-        setTemplatePojo({
-          ...TemplatePojo,
-          sentenceID: nodeId,
-          sentenceType: nodeType,
-          subjectType: nodeSubjNounType,
-          verbCategory: nodePredVerbCate,
-          infinitiveType: nodePredVerbInfitype,
-          infinitiveTense: nodePredVerbInfiTense,
-          subverbType: nodePredVerbInfiSubVerbType,
-          objectType: nodePredObjNounType,
-          subjectArticleType: nodeSubjArtType,
-          objectArticleType: nodePredObjArtType,
-        });
 
         tempPojoSent = {
           ...tempPojoSent,
@@ -389,7 +405,6 @@ const TenseMidcontent = () => {
 
   const getVerbInflections = (tense) => {
     var listTense = [];
-
     switch (tense) {
       case "Simple Present Tense":
         listTense = simplepresent();
@@ -436,12 +451,22 @@ const TenseMidcontent = () => {
   };
 
   const simplepresent = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var object_number = tempActivityPojo.object_number;
-    var subject_person = tempActivityPojo.subject_person;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
     var sverb = null;
-    var verb = tempActivityPojo.verb;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
     var activeverb = null;
     var passiveverb = null;
     var actpassverb = [];
@@ -509,11 +534,21 @@ const TenseMidcontent = () => {
   };
 
   const continuouspresent = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var object_number = tempActivityPojo.object_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -615,11 +650,21 @@ const TenseMidcontent = () => {
   };
 
   const perfectpresent = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var object_number = tempActivityPojo.object_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -698,11 +743,21 @@ const TenseMidcontent = () => {
   };
 
   const perfectpresentcontinuous = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var object_number = tempActivityPojo.object_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -735,12 +790,24 @@ const TenseMidcontent = () => {
   };
 
   const simplepast = () => {
-    var sentencetense = tempActivityPojo.sentence_tense;
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var sentencetense = tempActivityPojo.sentence_tense
+      ? tempActivityPojo.sentence_tense
+      : dummyTempActivityPojo.sentence_tense;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -802,11 +869,21 @@ const TenseMidcontent = () => {
 
   const continuouspast = () => {
     // active form
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -893,11 +970,21 @@ const TenseMidcontent = () => {
   };
 
   const perfectpast = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = "had";
     var activeverb = null;
     var passiveverb = null;
@@ -951,11 +1038,21 @@ const TenseMidcontent = () => {
   };
 
   const perfectpastcontinuous = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var object_number = tempActivityPojo.object_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -978,11 +1075,21 @@ const TenseMidcontent = () => {
   };
 
   const simplefuture = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = "will";
     var activeverb = null;
     var passiveverb = null;
@@ -1028,11 +1135,21 @@ const TenseMidcontent = () => {
   };
 
   const futurecontinuous = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -1071,11 +1188,21 @@ const TenseMidcontent = () => {
   };
 
   const perfectfuture = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
     var sverb = "will have";
     var activeverb = null;
     var passiveverb = null;
@@ -1131,11 +1258,22 @@ const TenseMidcontent = () => {
   };
 
   const perfectfuturecontinuous = () => {
-    var category = tempActivityPojo.verb_category;
-    var subject_number = tempActivityPojo.subject_number;
-    var subject_person = tempActivityPojo.subject_person;
-    var verb = tempActivityPojo.verb;
-    var object_number = tempActivityPojo.object_number;
+    var category = tempActivityPojo.verb_category
+      ? tempActivityPojo.verb_category
+      : dummyTempActivityPojo.verb_category;
+    var subject_number = tempActivityPojo.subject_number
+      ? tempActivityPojo.subject_number
+      : dummyTempActivityPojo.subject_number;
+    var subject_person = tempActivityPojo.subject_person
+      ? tempActivityPojo.subject_person
+      : dummyTempActivityPojo.subject_person;
+    var verb = tempActivityPojo.verb
+      ? tempActivityPojo.verb
+      : dummyTempActivityPojo.verb;
+    var object_number = tempActivityPojo.object_number
+      ? tempActivityPojo.object_number
+      : dummyTempActivityPojo.object_number;
+
     var sverb = null;
     var activeverb = null;
     var passiveverb = null;
@@ -1168,7 +1306,10 @@ const TenseMidcontent = () => {
         tempActivityPojo.active_main_verb;
     }
     actpassverb.push(activeverb);
-    actpassverb.push(passiveverb);
+    // actpassverb.push(passiveverb);
+
+    // console.log(actpassverb);
+
     return actpassverb;
   };
 
@@ -1176,6 +1317,7 @@ const TenseMidcontent = () => {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   };
 
+  // ************************************Ariticle************************************************************
   const articleSelector = () => {
     /* Nouns - singular a/ an //handled plural nothing - countable a/an
      * Uncountable nothing - can go with adjective or an adverb-adjective combination before the noun
@@ -1283,19 +1425,29 @@ const TenseMidcontent = () => {
     }
     tempActivityPojo.subject_article = article;
   };
+  // ************************************Ariticle************************************************************
 
   const generateSentence = (exerciseID, verbList) => {
     var active_voice = null;
     // var passive_voice = null;
-    var subject_name = tempActivityPojo.subject_name;
-    var object_name = tempActivityPojo.object_name;
+    var subject_name = tempActivityPojo.subject_name
+      ? tempActivityPojo.subject_name
+      : dummyTempActivityPojo.subject_name;
+    var object_name = tempActivityPojo.object_name
+      ? tempActivityPojo.object_name
+      : dummyTempActivityPojo.object_name;
 
-    if (exerciseID == 4) {
+    let obj_art = tempActivityPojo.object_article
+      ? tempActivityPojo.object_article
+      : dummyTempActivityPojo.object_article;
+    let sub_art = tempActivityPojo.subject_article
+      ? tempActivityPojo.subject_article
+      : dummyTempActivityPojo.subject_article;
+
+    if (exerciseID === 4) {
       if (
-        ((tempActivityPojo.object_article.toLocaleLowerCase === "" ||
-          tempActivityPojo.object_article === null) &&
-          tempActivityPojo.subject_article.toLowerCase() === "") ||
-        tempActivityPojo.subject_article === null
+        ((obj_art === "" || obj_art === null) && sub_art === "") ||
+        sub_art === null
       ) {
         active_voice =
           subject_name.substring(0, 1).toUpperCase() +
@@ -1304,120 +1456,111 @@ const TenseMidcontent = () => {
           verbList[0] +
           " " +
           object_name;
-      } else if (
-        tempActivityPojo.object_article.toLowerCase() === "" ||
-        tempActivityPojo.object_article === null
-      ) {
+      } else if (obj_art === "" || obj_art === null) {
         active_voice =
-          tempActivityPojo.subject_article.substring(0, 1).toUpperCase() +
-          tempActivityPojo.subject_article.substring(1) +
+          sub_art.substring(0, 1).toUpperCase() +
+          sub_art.substring(1) +
           " " +
           subject_name +
           " " +
           verbList[0] +
           " " +
           object_name;
-      } else if (
-        tempActivityPojo.subject_article.toLowerCase() === "" ||
-        tempActivityPojo.subject_article === null
-      ) {
+      } else if (sub_art === "" || sub_art === null) {
         active_voice =
           subject_name.substring(0, 1).toUpperCase() +
           subject_name.substring(1) +
           " " +
           verbList[0] +
           " " +
-          tempActivityPojo.object_article +
+          obj_art +
           " " +
           object_name;
       } else {
         active_voice =
-          tempActivityPojo.subject_article.substring(0, 1).toUpperCase() +
+          sub_art.substring(0, 1).toUpperCase() +
           " " +
-          tempActivityPojo.subject_article.substring(1) +
+          sub_art.substring(1) +
           " " +
           subject_name +
           " " +
           verbList[0] +
           " " +
-          tempActivityPojo.object_article +
+          obj_art +
           " " +
           object_name;
       }
-
-      tempActivityPojo.active_voice = active_voice;
+      return active_voice;
     }
   };
 
   const jumbled_sentence = (sentenceTense) => {
-    // var active_sentence = tempActivityPojo.active_voice.split(" ");
-    // tempActivityPojo.active_sentence = active_sentence;
-    // var passive_sentence = tempActivityPojo.passive_voice.split(" ");
-    // tempActivityPojo.passive_sentence = passive_sentence;
-    // tempActivityPojo.jumbled_active_sentence = shuffleArray(active_sentence);
-    // tempActivityPojo.jumbled_passive_sentence = shuffleArray(passive_sentence);
-
     var active_sentence = [];
-    var passive_sentence = [];
-
     tempActivityPojo.sentence_tense = sentenceTense;
     active_sentence = tempActivityPojo.active_voice.split(" ");
-    // console.log(active_sentence);
     tempActivityPojo.active_sentence = active_sentence;
-    tempActivityPojo.jumbled_active_sentence = shuffleArray(active_sentence);
-    if (tempActivityPojo.passive_voice !== null) {
-      passive_sentence = tempActivityPojo.passive_voice.split(" ");
-      tempActivityPojo.passive_sentence = passive_sentence;
-      tempActivityPojo.jumbled_passive_sentence =
-        shuffleArray(passive_sentence);
-    }
-
-    // console.log(active_sentence);
-    // console.log(passive_sentence);
-  };
-
-  const updateTenseConversionPojo = (sentenceTense) => {
-    tempTenseConversionPojo.tenseConvQuest = sentenceTense;
-    tempTenseConversionPojo.questSent_helping_verb =
-      tempActivityPojo.active_helping_verb;
-    tempTenseConversionPojo.questSent_main_verb =
-      tempActivityPojo.active_main_verb;
-    tempTenseConversionPojo.QuestionSentence = tempActivityPojo.active_voice;
-    tempTenseConversionPojo.questSent = tempActivityPojo.active_sentence;
   };
 
   const generateAnswerSentence = () => {
-    // console.log(secondDropDown);
-    // console.log(tempActivityPojo.active_voice);
     var arr = [];
     arr = getVerbInflections(secondDropDown);
-    // console.log(arr);
-    generateSentence(4, arr);
+
+    let secondDDSent = generateSentence(4, arr);
+
+    console.log(secondDDSent);
+
+    setDummyTempActivityPojo((prevState) => ({
+      ...prevState,
+      AnswerSentence: secondDDSent,
+    }));
+
+    tempActivityPojo.active_voice = secondDDSent;
+    tempActivityPojo.AnswerSentence = secondDDSent;
+
     jumbled_sentence(secondDropDown);
+
     TenseConversionPojo.tenseConvAns = secondDropDown;
+
     TenseConversionPojo.ansSent_helping_verb =
-      tempActivityPojo.active_helping_verb;
-    TenseConversionPojo.ansSent_main_verb = tempActivityPojo.active_main_verb;
+      tempActivityPojo.active_helping_verb
+        ? tempActivityPojo.active_helping_verb
+        : dummyTempActivityPojo.active_helping_verb;
+
+    TenseConversionPojo.ansSent_main_verb = tempActivityPojo.active_main_verb
+      ? tempActivityPojo.active_main_verb
+      : dummyTempActivityPojo.active_main_verb;
+
     TenseConversionPojo.ansSent = tempActivityPojo.active_sentence;
     TenseConversionPojo.AnswerSentence = tempActivityPojo.active_voice;
 
     var tempArray = new Array(TenseConversionPojo.ansSent.length);
-    // console.log(TenseConversionPojo.ansSent);
 
     let posMainVerb = 999;
+
+    let sub_name = tempActivityPojo.subject_name
+      ? tempActivityPojo.subject_name
+      : dummyTempActivityPojo.subject_name;
+    let obj_name = tempActivityPojo.object_name
+      ? tempActivityPojo.object_name
+      : dummyTempActivityPojo.object_name;
+    let sub_art = tempActivityPojo.subject_article
+      ? tempActivityPojo.subject_article
+      : dummyTempActivityPojo.subject_article;
+    let obj_art = tempActivityPojo.object_article
+      ? tempActivityPojo.object_article
+      : dummyTempActivityPojo.object_article;
+
     for (let i = 0; i < tempArray.length; i++) {
       if (
-        tempActivityPojo.subject_name.toLowerCase() ===
+        sub_name.toLowerCase() ===
           TenseConversionPojo.ansSent[i].toLowerCase() ||
-        tempActivityPojo.object_name.toLowerCase() ===
+        obj_name.toLowerCase() ===
           TenseConversionPojo.ansSent[i].toLowerCase() ||
-        tempActivityPojo.subject_article.toLowerCase() ===
+        sub_art.toLowerCase() ===
           TenseConversionPojo.ansSent[i].toLowerCase() ||
-        tempActivityPojo.object_article.toLowerCase() ===
-          TenseConversionPojo.ansSent[i].toLowerCase()
+        obj_art.toLowerCase() === TenseConversionPojo.ansSent[i].toLowerCase()
       ) {
-        // console.log(TenseConversionPojo.ansSent[i]);
-        if (!TenseConversionPojo.ansSent[i].toLowerCase() == "") {
+        if (!TenseConversionPojo.ansSent[i] == "") {
           tempArray[i] = TenseConversionPojo.ansSent[i];
         }
       } else {
@@ -1432,7 +1575,7 @@ const TenseMidcontent = () => {
     }
 
     let indexes = tempArray.reduce((acc, item, index) => {
-      if (item === "--------") {
+      if (item == "--------") {
         acc.push(index);
       }
       return acc;
@@ -1440,46 +1583,14 @@ const TenseMidcontent = () => {
 
     setDroppableIndex((prev) => [...prev, ...indexes]);
     setActSentList(tempArray);
-    // console.log(indexes);
   };
 
-  const process = () => {
+  const process = (sentence) => {
     const sentenceElement = document.getElementById("sent");
     if (sentenceElement) {
-      sentenceElement.innerHTML += `<strong>${tempActivityPojo.active_voice}</strong>`; // Appending HTML
+      sentenceElement.innerHTML = "";
+      sentenceElement.innerHTML += `<strong>${sentence}</strong>`;
     }
-  };
-
-  const shuffleArray = (sent) => {
-    var sentence = new Array(sent.length);
-    sentence = [...sent];
-    //System.arraycopy(sent, 0, sentence, 0, sent.length);
-
-    for (var i = sentence.length - 1; i > 0; i--) {
-      var index = randomNumberInRange(0, i);
-      // Simple swap
-      var a = sentence[index];
-      sentence[index] = sentence[i];
-      sentence[i] = a;
-    }
-
-    var count = 0;
-    for (var i = 0; i < sentence.length; i++) {
-      if (sent[i].toLowerCase() === sentence[i].toLowerCase()) {
-        // not shuffled then again shuffle it
-        count++;
-      }
-    }
-
-    if (count == sentence.length) {
-      let temp0 = sentence[0];
-      let temp1 = sentence[1];
-      sentence[1] = temp0;
-      temp0 = sentence[2];
-      sentence[2] = temp1;
-      sentence[0] = temp0;
-    }
-    return sentence;
   };
 
   const handleChange = (event, dropdown) => {
@@ -1500,6 +1611,7 @@ const TenseMidcontent = () => {
 
   const fetchOptions = () => {
     const baseFormVerb = tempActivityPojo.verb;
+
     const mainVerbArray = new Array(10);
     const helpingVerbArray = [
       "am",
@@ -1590,7 +1702,17 @@ const TenseMidcontent = () => {
     setActSentList(updatedList);
   };
 
-  const CheckAnswer = () => {
+  const CheckAnswer = (str) => {
+    switch (str) {
+      case "submit":
+        break;
+      case "showAnswer":
+        setIsDisableNext(false);
+        break;
+      default:
+        break;
+    }
+
     let correctWordCount = 0;
     for (let i = 0; i < TenseConversionPojo.ansSent.length; i++) {
       if (
@@ -1613,8 +1735,8 @@ const TenseMidcontent = () => {
     }
     getDetailedFeedbackForMainVerb();
     getDetailedFeedbackForHelpingVerb();
-    console.log(feedbackAnswer);
-    
+
+    setOpenFeedback(true);
   };
 
   const getDetailedFeedbackForMainVerb = () => {
@@ -1623,8 +1745,6 @@ const TenseMidcontent = () => {
 
     for (let i = 0; i < correctAns.length; i++) {
       if (isMainVerb(correctAns, i) && isBoxEmpty(usersAns, i)) {
-        console.log("inside if");
-
         setFeedbackAnswer((prev) => ({
           ...prev,
           main_verb_Diagnosis: feedback.Diagnosis.missingMV_Diagnosis,
@@ -1802,10 +1922,6 @@ const TenseMidcontent = () => {
   };
 
   const isHelpingVerbFromOption = (correctAns, i, j) => {
-    // console.log(correctAns);
-    // console.log(i);
-    // console.log(TenseConversionPojo.helping_verb_array[j]);
-
     return (
       correctAns[i].toLowerCase() == TenseConversionPojo.helping_verb_array[j]
     );
@@ -1819,84 +1935,443 @@ const TenseMidcontent = () => {
     return userAns[i] === TenseConversionPojo.ansSent_helping_verb_array[k];
   };
 
+  const handleCloseResult = () => {
+    setOpenFeedback(false);
+  };
+
+  const handleNext = async () => {
+    setShowAnswerCounter(0);
+    setIsDisableNext(true);
+
+    const sentenceTempPath = getSentenceTempPath();
+
+    // Ensure sentenceTempPath is valid before proceeding
+    if (sentenceTempPath) {
+      try {
+        // Wait for sentence parsing to finish
+        await simpleSentenceParser(sentenceTempPath);
+
+        // Get the noun-verb details after parsing
+        const allNounVrbObj = getDetailedNounVerb(
+          actvityId,
+          tempPojoSent,
+          tempActivityPojo
+        );
+
+        // Set object details and subject details
+        setObjectDetails(allNounVrbObj.Noun_verb_nounid, tempActivityPojo);
+        setSubjectDetails();
+
+        // Get verb inflections from the first dropdown
+        const listActPass = getVerbInflections(firstDropDown);
+
+        // Run the article selector and generate a sentence
+        articleSelector();
+        const firstDDSentence = generateSentence(4, listActPass);
+
+        // Process the generated sentence
+        process(firstDDSentence);
+        generateAnswerSentence();
+
+        // Set the activity options
+        setActList(fetchOptions());
+
+        // Copy the data to the dummy objects (this will update state)
+        setDummyTempActivityPojo({ ...tempActivityPojo });
+        // setDummyTempPojoSent({ ...tempPojoSent });
+      } catch (error) {
+        console.error("Error during sentence parsing or processing:", error);
+      }
+    }
+  };
+
   return (
-    <div className="container-fluid p-3">
-      <div className="row">Tense Conversion</div>
-      <div className="row">Select Tense</div>
-      <div className="row d-inline">
-        <span>
-          <select
-            value={firstDropDown} // Bind the value of the first dropdown
-            onChange={(e) => {
-              handleChange(e, "FirstDropdown");
-            }}
-          >
-            {TenseDropdown.map((item, index) => {
-              return (
-                <option key={index} value={item.tense}>
-                  {item.tense}
-                </option>
-              );
-            })}
-          </select>
-        </span>{" "}
-        <span>change to</span>{" "}
-        <span>
-          <select
-            value={secondDropDown} // Bind the value of the second dropdown
-            onChange={(e) => {
-              handleChange(e, "SecondDropdown");
-            }}
-          >
-            {TenseDropdown.map((item, index) => {
-              // Only include the option if it's not the same as the first dropdown value
-              if (item.tense === firstDropDown) return null; // Don't render this option in second dropdown
-              return (
-                <option key={index} value={item.tense}>
-                  {item.tense}
-                </option>
-              );
-            })}
-          </select>
-        </span>
-      </div>
-      <div className="row">Sentence in {firstDropDown}</div>
-      <div className="row">
-        <div id="sent"></div>
-      </div>
-      <div className="row">Sentence in {secondDropDown}</div>
-
-      <span>
-        {actSentList.map((item, index) =>
-          droppableIndex.includes(index) ? (
-            <DropTarget
-              key={index}
-              targetKey="item"
-              onHit={(e) => handleDrop(e, index)}
+    <div
+      className="row d-flex scrollbar-primary"
+      style={{
+        width: "100vw",
+        backgroundColor: "#F2FBFF",
+        borderRadius: "14px",
+        opacity: 1,
+        boxShadow: "0px 10px 5px rgba(0, 0, 0, 0.40)",
+        display: "block",
+        overflow: "auto",
+      }}
+    >
+      <div className="col-sm-9 d-flex align-items-center">
+        <div
+          className="scrollbar-primary"
+          style={{
+            height: "80vh",
+            width: "95%",
+            background: "#FFFFFF 0% 0% no-repeat padding-box",
+            borderRadius: "13px",
+            boxShadow: "0px 4px 7px #00000029",
+            display: "block",
+            padding: "3%",
+            overflow: "auto",
+            overflowX: "hidden",
+            margin: "5px",
+          }}
+        >
+          <div className="row mb-3">
+            <div
+              style={{
+                boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",
+                height: "auto",
+                width: "100%",
+                padding: 0,
+                borderRadius: "5px",
+              }}
             >
-              <span className="btn btn-secondary m-1">{item}</span>
-            </DropTarget>
-          ) : (
-            <span key={index} className="btn btn-secondary m-1">
-              {item}
-            </span>
-          )
-        )}
-      </span>
+              <div
+                style={{
+                  background: "#3bafda",
+                  padding: "10px",
+                  borderRadius: "5px 5px 0 0",
+                  color: "#fff",
+                  fontWeight: "bolder",
+                }}
+              >
+                Tense Conversion
+              </div>
+              <div className="p-3">
+                <div className="mb-3">
+                  <div className="fw-bolder">Select Tense</div>
+                  <div className="d-flex align-items-center">
+                    <div>
+                      {" "}
+                      <select
+                        value={firstDropDown} // Bind the value of the first dropdown
+                        onChange={(e) => {
+                          handleChange(e, "FirstDropdown");
+                        }}
+                      >
+                        {TenseDropdown.map((item, index) => {
+                          return (
+                            <option key={index} value={item.tense}>
+                              {item.tense}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <div className="ms-3 me-3 text-danger">change to</div>
+                    <div>
+                      {" "}
+                      <select
+                        value={secondDropDown} // Bind the value of the second dropdown
+                        onChange={(e) => {
+                          handleChange(e, "SecondDropdown");
+                        }}
+                      >
+                        {TenseDropdown.map((item, index) => {
+                          // Only include the option if it's not the same as the first dropdown value
+                          if (item.tense === firstDropDown) return null; // Don't render this option in second dropdown
+                          return (
+                            <option key={index} value={item.tense}>
+                              {item.tense}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-      <div className="p-3 ps-0">
-        {actList.map((item, index) => (
-          <DragDropContainer key={index} targetKey="item" dragData={item}>
-            <span className="btn btn-secondary m-1">{item.slice(0, -3)}</span>
-          </DragDropContainer>
-        ))}
+                <div>
+                  <div>
+                    Sentence in{" "}
+                    <span style={{ color: "#105294" }}>{firstDropDown}</span>
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <div id="sent"></div>
+                </div>
+
+                <div>
+                  <div>
+                    Sentence in{" "}
+                    <span style={{ color: "#105294" }}>{secondDropDown}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span>
+                    {actSentList.map((item, index) =>
+                      droppableIndex.includes(index) ? (
+                        <DropTarget
+                          key={index}
+                          targetKey="item"
+                          onHit={(e) => handleDrop(e, index)}
+                        >
+                          <span
+                            className="btn btn-outline m-1"
+                            style={{ border: "2px solid #04B4AE" }}
+                          >
+                            {item}
+                          </span>
+                        </DropTarget>
+                      ) : (
+                        <span
+                          key={index}
+                          className="btn btn-outline m-1"
+                          style={{ border: "2px solid #04B4AE" }}
+                        >
+                          {item}
+                        </span>
+                      )
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="row mb-3">
+            <div
+              style={{
+                boxShadow: "rgba(0, 0, 0, 0.35) 0px 5px 15px",
+                height: "auto",
+                width: "100%",
+                padding: 0,
+                borderRadius: "5px",
+              }}
+            >
+              <div
+                style={{
+                  background: "#3bafda",
+                  padding: "10px",
+                  borderRadius: "5px 5px 0 0",
+                  color: "#fff",
+                  fontWeight: "bolder",
+                }}
+              >
+                Word Repository
+              </div>
+              <div className="p-3">
+                {actList.map((item, index) => (
+                  <DragDropContainer
+                    key={index}
+                    targetKey="item"
+                    dragData={item}
+                  >
+                    <span
+                      className="btn btn-outline m-1"
+                      style={{ border: "2px solid #4a89dc" }}
+                    >
+                      {item.slice(0, -3)}
+                    </span>
+                  </DragDropContainer>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="d-flex justify-content-between">
+              <Button
+                disabled={showAnswerCounter >= 4}
+                variant="contained"
+                color="primary"
+                onClick={() => CheckAnswer("submit")}
+              >
+                Submit
+              </Button>
+              <Button
+                disabled={IsDisableNext}
+                variant="contained"
+                color="primary"
+                onClick={handleNext}
+              >
+                Next
+              </Button>
+              <Button
+                disabled={showAnswerCounter !== 4}
+                variant="contained"
+                color="primary"
+                onClick={() => CheckAnswer("showAnswer")}
+              >
+                Show Answer
+              </Button>
+            </div>
+          </div>
+
+          <Dialog
+            open={openFeedback}
+            onClose={handleCloseResult}
+            maxWidth={"lg"}
+            aria-labelledby="responsive-dialog-title"
+          >
+            <DialogTitle
+              id="responsive-dialog-title"
+              style={{ textAlign: "center" }}
+            >
+              <b> RESULT </b>
+            </DialogTitle>
+            <DialogContent>
+              {feedbackAnswer["answerFeedback"] === "Correct answer." ? (
+                <b style={{ color: "green" }}>
+                  Congratulations! Your answer is correct.
+                </b>
+              ) : (
+                <>
+                  <table
+                    style={{
+                      width: "100%",
+                      tableLayout: "auto",
+                      border: "1px solid black",
+                    }}
+                  >
+                    <thead
+                      style={{ padding: "10px", border: "1px solid black" }}
+                    >
+                      <tr
+                        style={{
+                          border: "1px solid black",
+                          textAlign: "center",
+                          color: "white",
+                          background: "#428bca",
+                        }}
+                      >
+                        <th
+                          colSpan="4"
+                          style={{ padding: "10px", fontWeight: "bolder" }}
+                        >
+                          Feedback
+                        </th>
+                      </tr>
+                      <tr style={{ background: "#d9edf7" }}>
+                        <th
+                          style={{ padding: "10px", border: "1px solid black" }}
+                        >
+                          Item
+                        </th>
+                        <th
+                          style={{ padding: "10px", border: "1px solid black" }}
+                        >
+                          Result
+                        </th>
+                        <th
+                          style={{ padding: "10px", border: "1px solid black" }}
+                        >
+                          Desctiption
+                        </th>
+                        <th
+                          style={{ padding: "10px", border: "1px solid black" }}
+                        >
+                          Remedy
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {feedbackAnswer.main_verb_Diagnosis !==
+                        "'main verb' is correct." && (
+                        <tr style={{ background: "#d9edf7" }}>
+                          <td className="td_col">Main verb</td>
+                          <td className="td_col">
+                            <CloseOutlinedIcon style={{ color: "red" }} />
+                          </td>
+                          <td className="td_col">
+                            {feedbackAnswer.main_verb_Diagnosis}
+                          </td>
+                          <td className="td_col">
+                            {feedbackAnswer.main_verb_Remedy}
+                          </td>
+                        </tr>
+                      )}
+
+                      {feedbackAnswer.helping_verb_Diagnosis !==
+                        "'helping verb' is correct." && (
+                        <tr style={{ background: "#d9edf7" }}>
+                          <td className="td_col">Helping verb</td>
+                          <td className="td_col">
+                            <CloseOutlinedIcon style={{ color: "red" }} />
+                          </td>
+                          <td className="td_col">
+                            {feedbackAnswer.helping_verb_Diagnosis}
+                          </td>
+                          <td className="td_col">
+                            {feedbackAnswer.helping_verb_Remedy}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  {showAnswerCounter >= 5 && (
+                    <div
+                      style={{
+                        background: "#dff0d8",
+                        border: "1px solid black",
+                        padding: "10px",
+                      }}
+                    >
+                      <div>
+                        <b>Correct Answer: </b>
+                        <span></span>
+                        {dummyTempActivityPojo.AnswerSentence}.
+                      </div>
+                      <div>
+                        Click on the "NEXT" button to solve next question.
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </DialogContent>
+            <DialogActions className="d-flex justify-content-center">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleCloseResult}
+                autoFocus
+              >
+                OK
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </div>
       </div>
 
-      <div className="row">
-        <div>
-          <Button variant="contained" color="primary" onClick={CheckAnswer}>
-            Submit
-          </Button>
+      <div className="col-sm-3 d-flex align-items-center justify-content-center">
+        <div
+          className="scrollbar-primary"
+          style={{
+            height: "80vh",
+            width: "95%",
+            overflow: "auto",
+            overflowX: "hidden",
+            borderRadius: "13px",
+            boxShadow: "0px 4px 7px #00000029",
+            display: "block",
+            background: "#FFFFFF 0% 0% no-repeat padding-box",
+            margin: "5px",
+          }}
+        >
+          <div
+            className="sticky-top text-center subheading"
+            style={{
+              background: "#002F65",
+              borderRadius: "13px 13px 0px 0px",
+              opacity: "1",
+              color: "#FFFFFF",
+              fontSize: "calc(1rem + 0.2vw)",
+              fontWeight: "bolder",
+            }}
+          >
+            Instructions
+          </div>
+          <div style={{ maxHeight: "50vh", padding: "2%", lineHeight: "30px" }}>
+            <div>
+              <ul>
+                <li>{t("instr1")}</li>
+                <li>{t("instr2")}</li>
+                <li>{t("instr3")}</li>
+                <li>{t("instr4")}</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>

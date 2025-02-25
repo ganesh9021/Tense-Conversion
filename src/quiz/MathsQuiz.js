@@ -7,23 +7,22 @@ import logconfig from "../config/dbconfig";
 import { SendLogData } from "../config/wslog.js";
 
 const MathsQuiz = () => {
-
   const { sendJsonMessage } = useWebSocket(logconfig.logurl, { share: true });
-  const { t, i18n } = useTranslation();
-  
+  const { t } = useTranslation();
+
   return (
     <div>
       <Quiz
-        H_title="Formal Letter Writing"
+        H_title="Tense Conversion"
         H_sidebarvisible="hidden"
-        HQ_quittext="Are you sure you want to quit?"
-        HQ_yes="yes"
-        HQ_cancel="cancel"
-        quiz_component={<Quizcomp/>}
+        HQ_quittext={t("aysywtq")}
+        HQ_yes={t("yes")}
+        HQ_cancel={t("cancel")}
+        quiz_component={<Quizcomp />}
         WS_sendJsonMessage={sendJsonMessage}
         WS_SendLogData={SendLogData}
         labNo="123"
-        labShortName="Letter"         
+        labShortName="Tense Conversion"
       />
     </div>
   );

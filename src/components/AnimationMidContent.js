@@ -1,10 +1,10 @@
 import React from "react";
 import ReactPlayer from "react-player";
-import video from "../HelpVideo/Noun.webm";
+import video from "../HelpVideo/tense_conversion.webm";
 
 const AnimationMidContent = () => {
   return (
-    <div className="py-3" style={{  width: "100%" , paddingRight :"10px"}}>
+    <div className="py-3" style={{ width: "100%", paddingRight: "10px" }}>
       <ReactPlayer
         className="react-player"
         url={video}
