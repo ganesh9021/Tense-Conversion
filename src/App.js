@@ -15,7 +15,7 @@ import useWebSocket from "react-use-websocket";
 import logconfig from "./config/dbconfig";
 import ReactGA from "react-ga4";
 import setLangStore, { changeLang } from "./store/Store";
-import Language from './Language'
+import Language from "./Language";
 
 function App() {
   const { id } = useParams();
@@ -36,8 +36,8 @@ function App() {
   const getData = async () => {
     // const res = await axios.get("https://api.ipify.org/?format=json");
     //console.log(res.data);
-    const res = await axios.get("https://ipapi.co/json/");
-    setIP(res.data.ip);
+    // const res = await axios.get("https://ipapi.co/json/");
+    // setIP(res.data.ip);
     localStorage.setItem("clientip", ip);
   };
 
@@ -74,7 +74,7 @@ function App() {
       dispatch(changeLang("hn"));
     }
   }, []);
-  
+
   return (
     <Routes>
       <Route path="/:id" element={<App />} />
