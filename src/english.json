@@ -8,6 +8,7 @@
   "instr2": "Drag and drop the correct main and helping verb and click on the \"SUBMIT\" button.",
   "instr3": "Click on the \"NEXT\" button to get the next sentence.",
   "instr4": "Click on the \"SHOW ANSWER\" button to see the answer sentence.",
+  "instr5": "Click on the \"NEXT\" button to solve next question.",
 
   "q_instr1": "Read all instructions given below.",
   "q_instr2": "The quiz will start after clicking on the \"OK\" button, along with a timer.",
@@ -27,14 +28,15 @@
   "proc7": "Click on the \"NEXT\" button to get the next sentence.",
 
   "obj": "Objective",
-  "lo": "Learning Outcome",
+  "lo": "Learning outcome",
   "start": "START",
   "wawgtl": "What are we going to learn?",
   "ok": "OK",
   "cancel": "CANCEL",
-  "lg": "LET'S Go",
+  "lg": "LET'S GO",
   "level1": "Level 1",
   "level2": "Level 2",
+  "level3": "Level 3",
   "theory": "Theory",
   "procedure": "Procedure",
   "animation": "Animation",
@@ -42,7 +44,18 @@
   "lets_go": "Let's Go",
   "aysywtq": "Are you sure you want to quit?",
   "yes": "YES",
-  "no": "No",
+  "no": "NO",
   "ifq": "Instructions for quiz",
-  "instr": "Instructions"
+  "instr": "Instructions",
+  "next": "NEXT",
+  "finish": "FINISH",
+  "verify": "VERIFY",
+  "close": "CLOSE",
+  "hint": "Hint",
+  "hint_tooltip": "Click here to view hint",
+  "skip": "SKIP",
+  "restart": "RESTART",
+  "show_answer": "Show Answer",
+  "submit": "SUBMIT"
+  
 }

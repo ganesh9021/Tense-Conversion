@@ -13,7 +13,7 @@ const TheoryPage = () => {
   return (
     <>
       <TheoryPageWithLabel
-        H_title="Tense Conversion"
+        H_title="Tense conversion"
         HQ_yes={t("yes")}
         HQ_cancel={t("cancel")}
         HQ_quittext={t("aysywtq")}
@@ -30,8 +30,8 @@ const TheoryPage = () => {
         RSM_QuizPopupContent_comp={<QuizPopupContent />}
         WS_sendJsonMessage={sendJsonMessage}
         WS_SendLogData={SendLogData}
-        labNo="123"
-        labShortName="Tense Conversion"
+        labNo="-"
+        labShortName="Tense conversion"
       />
     </>
   );

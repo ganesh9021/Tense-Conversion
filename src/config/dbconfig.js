@@ -1,7 +1,7 @@
 module.exports = {
   logurl: "ws://10.212.9.179:8000",
-  activityName: "Letter writing",
+  activityName: "Tense conversion",
   subject: "English",
-  activityUniqueName: "CDAC-OlabsNxtG-En-6",
+  activityUniqueName: "Tense conversion",
   standard: "8",
 };

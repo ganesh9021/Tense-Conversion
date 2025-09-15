@@ -9,10 +9,15 @@ const ProcedureMidContent = () => {
   const { t } = useTranslation();
   return (
     <div
-      className="p-3 scrollbar-primary"
-      style={{ overflow: "auto", width: "100%" }}
+      className="py-3"
+      style={{
+        overflow: "auto",
+        width: "100%",
+        paddingRight: "10px",
+        fontSize: "calc(.6rem + .4vw)",
+      }}
     >
-      <div className="fw-bolder">Procedure:</div>
+      <div className="fw-bolder">{t("procedure")}:</div>
       <ol>
         <li>{t("proc1")}</li>
         <div

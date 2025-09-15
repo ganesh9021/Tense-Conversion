@@ -13,7 +13,7 @@ const MathsQuiz = () => {
   return (
     <div>
       <Quiz
-        H_title="Tense Conversion"
+        H_title="Tense conversion"
         H_sidebarvisible="hidden"
         HQ_quittext={t("aysywtq")}
         HQ_yes={t("yes")}
@@ -21,8 +21,8 @@ const MathsQuiz = () => {
         quiz_component={<Quizcomp />}
         WS_sendJsonMessage={sendJsonMessage}
         WS_SendLogData={SendLogData}
-        labNo="123"
-        labShortName="Tense Conversion"
+        labNo="-"
+        labShortName="Tense conversion"
       />
     </div>
   );

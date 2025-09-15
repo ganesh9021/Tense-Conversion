@@ -11,9 +11,7 @@ const Homepage = () => {
   const { sendJsonMessage } = useWebSocket(logconfig.logurl, { share: true });
 
   var arr = [
-    "Student will recognise the different tenses.",
-    "Student will be able to accurately change sentences from one tense to another.",
-    "Student will demonstrate the ability to choose and use tenses correctly in their own speech and writing.",
+    "The student will recognise different tenses, accurately change sentences from one tense to another, and demonstrate the ability to choose and use tenses correctly in both speech and writing.",
   ];
 
   return (
@@ -36,7 +34,7 @@ const Homepage = () => {
         WS_sendJsonMessage={sendJsonMessage}
         WS_SendLogData={SendLogData}
         labNo="6"
-        labShortName="Tense Conversion"
+        labShortName="Tense conversion"
       />
     </>
   );

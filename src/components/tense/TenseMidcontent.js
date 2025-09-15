@@ -1987,7 +1987,7 @@ const TenseMidcontent = () => {
 
   return (
     <div
-      className="row d-flex scrollbar-primary"
+      className="row d-flex"
       style={{
         width: "100vw",
         backgroundColor: "#F2FBFF",
@@ -2000,7 +2000,6 @@ const TenseMidcontent = () => {
     >
       <div className="col-sm-9 d-flex align-items-center">
         <div
-          className="scrollbar-primary"
           style={{
             height: "80vh",
             width: "95%",
@@ -2012,6 +2011,7 @@ const TenseMidcontent = () => {
             overflow: "auto",
             overflowX: "hidden",
             margin: "5px",
+            fontSize: "calc(.6rem + .4vw)",
           }}
         >
           <div className="row mb-3">
@@ -2046,6 +2046,11 @@ const TenseMidcontent = () => {
                         onChange={(e) => {
                           handleChange(e, "FirstDropdown");
                         }}
+                        style={{
+                          background: "#F5B946",
+                          fontSize: "calc(.6rem + .4vw)",
+                          cursor: "pointer",
+                        }}
                       >
                         {TenseDropdown.map((item, index) => {
                           return (
@@ -2064,6 +2069,7 @@ const TenseMidcontent = () => {
                         onChange={(e) => {
                           handleChange(e, "SecondDropdown");
                         }}
+                        style={{ cursor: "pointer", background: "#F5B946" }}
                       >
                         {TenseDropdown.map((item, index) => {
                           // Only include the option if it's not the same as the first dropdown value
@@ -2174,26 +2180,38 @@ const TenseMidcontent = () => {
               <Button
                 disabled={showAnswerCounter >= 4}
                 variant="contained"
-                color="primary"
                 onClick={() => CheckAnswer("submit")}
+                sx={{
+                  background: "#0F477E",
+                  color: "#ffffff",
+                  fontSize: "calc(.6rem + .4vw)",
+                }}
               >
-                Submit
+                {t("submit")}
               </Button>
               <Button
                 disabled={IsDisableNext}
                 variant="contained"
-                color="primary"
                 onClick={handleNext}
+                sx={{
+                  background: "#0F477E",
+                  color: "#ffffff",
+                  fontSize: "calc(.6rem + .4vw)",
+                }}
               >
-                Next
+                {t("next")}
               </Button>
               <Button
                 disabled={showAnswerCounter !== 4}
                 variant="contained"
-                color="primary"
                 onClick={() => CheckAnswer("showAnswer")}
+                sx={{
+                  background: "#0F477E",
+                  color: "#ffffff",
+                  fontSize: "calc(.6rem + .4vw)",
+                }}
               >
-                Show Answer
+                {t("show_answer")}
               </Button>
             </div>
           </div>
@@ -2206,15 +2224,20 @@ const TenseMidcontent = () => {
           >
             <DialogTitle
               id="responsive-dialog-title"
-              style={{ textAlign: "center" }}
+              style={{
+                background: "#90D5FF",
+                fontSize: "calc(.6rem + .4vw)",
+                textAlign: "center",
+              }}
             >
               <b> RESULT </b>
             </DialogTitle>
             <DialogContent>
               {feedbackAnswer["answerFeedback"] === "Correct answer." ? (
-                <b style={{ color: "green" }}>
-                  Congratulations! Your answer is correct.
-                </b>
+                <div style={{ fontSize: "calc(.6rem + .4vw)" }}>
+                  <span style={{ color: "#098B0D" }}>Congratulations!</span>Your
+                  answer is correct.
+                </div>
               ) : (
                 <>
                   <table
@@ -2222,6 +2245,7 @@ const TenseMidcontent = () => {
                       width: "100%",
                       tableLayout: "auto",
                       border: "1px solid black",
+                      fontSize: "calc(.6rem + .4vw)",
                     }}
                   >
                     <thead
@@ -2312,9 +2336,7 @@ const TenseMidcontent = () => {
                         <span></span>
                         {dummyTempActivityPojo.AnswerSentence}.
                       </div>
-                      <div>
-                        Click on the "NEXT" button to solve next question.
-                      </div>
+                      <div>{t("instr5")}</div>
                     </div>
                   )}
                 </>
@@ -2323,11 +2345,14 @@ const TenseMidcontent = () => {
             <DialogActions className="d-flex justify-content-center">
               <Button
                 variant="contained"
-                color="primary"
                 onClick={handleCloseResult}
-                autoFocus
+                sx={{
+                  fontSize: "calc(.6rem + .2vw)",
+                  background: "#0F477E",
+                  color: "#ffffff",
+                }}
               >
-                OK
+                {t("ok")}
               </Button>
             </DialogActions>
           </Dialog>
@@ -2336,7 +2361,6 @@ const TenseMidcontent = () => {
 
       <div className="col-sm-3 d-flex align-items-center justify-content-center">
         <div
-          className="scrollbar-primary"
           style={{
             height: "80vh",
             width: "95%",
@@ -2360,9 +2384,16 @@ const TenseMidcontent = () => {
               fontWeight: "bolder",
             }}
           >
-            Instructions
+            {t("instr")}
           </div>
-          <div style={{ maxHeight: "50vh", padding: "2%", lineHeight: "30px" }}>
+          <div
+            style={{
+              maxHeight: "50vh",
+              padding: "2%",
+              lineHeight: "30px",
+              fontSize: "calc(.6rem + .4vw)",
+            }}
+          >
             <div>
               <ul>
                 <li>{t("instr1")}</li>
