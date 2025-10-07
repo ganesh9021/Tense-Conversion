@@ -15,6 +15,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import { useTranslation } from "react-i18next";
+import SentenceTemplate from "../SentenceTemplate";
 
 const TenseMidcontent = () => {
   const { t } = useTranslation();
@@ -247,77 +248,88 @@ const TenseMidcontent = () => {
   };
 
   async function simpleSentenceParser(xmlFileSrc) {
-    // const path = "../../supportingfiles" + xmlFileSrc;
-    var staticPath = require(`../../supportingfiles${xmlFileSrc}`);
-    // const response = fetch(staticPath);
+    try {
+      // var staticPath = require(`../../supportingfiles${xmlFileSrc}`);
+      // console.log(staticPath);
 
-    fetch(staticPath)
-      .then((response) => response.text())
-      .then((textResponse) => {
-        var parser = new DOMParser();
-        var xmlDoc = parser.parseFromString(textResponse, "text/xml");
-        const listSentence = xmlDoc.querySelectorAll("sentence");
-        var randSentId = randomNumberInRange(0, listSentence.length - 1);
-        var node = listSentence[randSentId];
-        var nodeId = node.getAttribute("id");
-        var nodeType = node.getAttribute("type");
-        var nodeChild = node.childNodes;
-        var nodeSubject = node.querySelectorAll("subject");
-        var nodePredicate = node.querySelectorAll("predicate");
-        var nodeSubjNounType = nodeSubject[0]
-          .querySelectorAll("noun")[0]
-          .getAttribute("type");
-        var nodePredVerbCate = nodePredicate[0]
-          .querySelectorAll("verb")[0]
-          .getAttribute("category");
-        var nodePredVerbInfitype = nodePredicate[0]
-          .querySelectorAll("verb")[0]
-          .querySelectorAll("infinitive")[0]
-          .getAttribute("type");
-        var nodePredVerbInfiTense = nodePredicate[0]
-          .querySelectorAll("verb")[0]
-          .querySelectorAll("infinitive")[0]
-          .getAttribute("tense");
-        var nodePredVerbInfiSubVerbType = nodePredicate[0]
-          .querySelectorAll("verb")[0]
-          .querySelectorAll("infinitive")[0]
-          .querySelectorAll("subverb")[0]
-          .getAttribute("type");
-        var nodePredObjNounType = nodePredicate[0]
-          .querySelectorAll("object")[0]
-          .querySelectorAll("noun")[0]
-          .getAttribute("type");
-        var nodeSubjArtType = nodeSubject[0]
-          .querySelectorAll("article")[0]
-          .getAttribute("type");
-        var nodePredObjArtType = nodePredicate[0]
-          .querySelectorAll("object")[0]
-          .querySelectorAll("article")[0]
-          .getAttribute("type");
+      // const response = await fetch(SentenceTemplate);
 
-        tempPojoSent = {
-          ...tempPojoSent,
-          sentenceID: nodeId,
-          sentenceType: nodeType,
-          subjectType: nodeSubjNounType,
-          verbCategory: nodePredVerbCate,
-          infinitiveType: nodePredVerbInfitype,
-          infinitiveTense: nodePredVerbInfiTense,
-          subverbType: nodePredVerbInfiSubVerbType,
-          objectType: nodePredObjNounType,
-          subjectArticleType: nodeSubjArtType,
-          objectArticleType: nodePredObjArtType,
-        };
-      })
-      .catch((error) => {
-        console.log(error);
-      });
+      // if (!response.ok) {
+      //   throw new Error(`HTTP error! Status: ${response.status}`);
+      // }
 
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve(tempPojoSent);
-      }, 600);
-    });
+      // const textResponse = await response.text();
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(SentenceTemplate, "text/xml");
+
+      const listSentence = xmlDoc.querySelectorAll("sentence");
+      const randSentId = randomNumberInRange(0, listSentence.length - 1);
+      const node = listSentence[randSentId];
+
+      const nodeId = node.getAttribute("id");
+      const nodeType = node.getAttribute("type");
+      const nodeSubject = node.querySelectorAll("subject");
+      const nodePredicate = node.querySelectorAll("predicate");
+
+      const nodeSubjNounType = nodeSubject[0]
+        .querySelectorAll("noun")[0]
+        .getAttribute("type");
+
+      const nodePredVerbCate = nodePredicate[0]
+        .querySelectorAll("verb")[0]
+        .getAttribute("category");
+
+      const nodePredVerbInfitype = nodePredicate[0]
+        .querySelectorAll("verb")[0]
+        .querySelectorAll("infinitive")[0]
+        .getAttribute("type");
+
+      const nodePredVerbInfiTense = nodePredicate[0]
+        .querySelectorAll("verb")[0]
+        .querySelectorAll("infinitive")[0]
+        .getAttribute("tense");
+
+      const nodePredVerbInfiSubVerbType = nodePredicate[0]
+        .querySelectorAll("verb")[0]
+        .querySelectorAll("infinitive")[0]
+        .querySelectorAll("subverb")[0]
+        .getAttribute("type");
+
+      const nodePredObjNounType = nodePredicate[0]
+        .querySelectorAll("object")[0]
+        .querySelectorAll("noun")[0]
+        .getAttribute("type");
+
+      const nodeSubjArtType = nodeSubject[0]
+        .querySelectorAll("article")[0]
+        .getAttribute("type");
+
+      const nodePredObjArtType = nodePredicate[0]
+        .querySelectorAll("object")[0]
+        .querySelectorAll("article")[0]
+        .getAttribute("type");
+
+      tempPojoSent = {
+        ...tempPojoSent,
+        sentenceID: nodeId,
+        sentenceType: nodeType,
+        subjectType: nodeSubjNounType,
+        verbCategory: nodePredVerbCate,
+        infinitiveType: nodePredVerbInfitype,
+        infinitiveTense: nodePredVerbInfiTense,
+        subverbType: nodePredVerbInfiSubVerbType,
+        objectType: nodePredObjNounType,
+        subjectArticleType: nodeSubjArtType,
+        objectArticleType: nodePredObjArtType,
+      };
+
+      // Optionally return tempPojoSent immediately
+      return tempPojoSent;
+    } catch (error) {
+      console.error(error);
+      throw error; // rethrow the error to handle it in calling code if needed
+    }
   }
 
   const getDetailedNounVerb = (actvityId, tempPojo, tempActPojo) => {
@@ -2178,7 +2190,6 @@ const TenseMidcontent = () => {
           <div className="row">
             <div className="d-flex justify-content-between">
               <Button
-                disabled={showAnswerCounter >= 4}
                 variant="contained"
                 onClick={() => CheckAnswer("submit")}
                 sx={{
@@ -2235,8 +2246,10 @@ const TenseMidcontent = () => {
             <DialogContent>
               {feedbackAnswer["answerFeedback"] === "Correct answer." ? (
                 <div style={{ fontSize: "calc(.6rem + .4vw)" }}>
-                  <span style={{ color: "#098B0D" }}>Congratulations!</span>Your
-                  answer is correct.
+                  <span style={{ color: "#098B0D" }}>
+                    Congratulations!&nbsp;
+                  </span>
+                  Your answer is correct.
                 </div>
               ) : (
                 <>
@@ -2398,8 +2411,8 @@ const TenseMidcontent = () => {
               <ul>
                 <li>{t("instr1")}</li>
                 <li>{t("instr2")}</li>
-                <li>{t("instr3")}</li>
-                <li>{t("instr4")}</li>
+                {!IsDisableNext && <li>{t("instr3")}</li>}
+                {showAnswerCounter === 4 && <li>{t("instr4")}</li>}
               </ul>
             </div>
           </div>
